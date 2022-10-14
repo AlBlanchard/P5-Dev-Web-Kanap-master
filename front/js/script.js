@@ -12,13 +12,13 @@ fetch(urlAPI)
 // Insert dans le HTML les liens vers les canapés avec leurs données associées
 function displayProduct(arrayData) {
     for(let canapData of arrayData) {
-        const itemsHTML = `<a href="./product.html?id=${canapData._id}">
-                        <article>
-                        <img src="${canapData.imageUrl}" alt="${canapData.altTxt}">
-                        <h3 class="productName">${canapData.name}</h3>
-                        <p class="productDescription">${canapData.description}</p>
-                        </article>
-                    </a>`;
+        const itemsHTML =   `<a href="./product.html?id=${canapData._id}">
+                                <article>
+                                <img src="${canapData.imageUrl}" alt="${canapData.altTxt}">
+                                <h3 class="productName">${canapData.name}</h3>
+                                <p class="productDescription">${canapData.description}</p>
+                                </article>
+                            </a>`;
         
         itemsSectionSelector.innerHTML += itemsHTML;
     }
