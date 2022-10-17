@@ -1,3 +1,4 @@
+const pageTitle = document.querySelector("Title");
 const urlQuery = window.location.search;
 const urlParamSplit = new URLSearchParams(urlQuery);
 const urlID = urlParamSplit.get("id");
@@ -8,9 +9,9 @@ let idFound = false;
 
 fetch(urlAPI) 
     .then(res => res.json())
-    .then(canapArray => {
-        wichProduct(canapArray, urlID);
-        return canapArray
+    .then(arrayAPI => {
+        wichProduct(arrayAPI, urlID);
+        return arrayAPI
     })
     .catch(err => console.log("Erreur API", err))
 
@@ -24,6 +25,7 @@ function wichProduct(arrayData, pageID) {
     }
     if(idFound == false) {
         productNotFound()
+        pageTitle.innerHTML = "Produit non trouvé";
     }
 };
 
@@ -41,6 +43,8 @@ function productHTML(productData) {
     const price = productData.price;
     const description = productData.description;
     const colors = productData.colors;
+
+    pageTitle.innerHTML = productData.name;
 
     nameSelector.insertAdjacentText("afterbegin", name)
     priceSelector.insertAdjacentText("afterbegin", price);
@@ -156,7 +160,6 @@ function addToCart(idToAdd, colorToAdd, quantityToAdd) {
 
         for(let productClass of cartData) {
             if(productClass.id == idToAdd && productClass.color == colorToAdd) {
-                console.log(productClass.id);
                 productClass.quantity = Number(productClass.quantity) + Number(quantityToAdd);
                 if(productClass.quantity > 100) {
                     productClass.quantity = 100;
@@ -168,17 +171,19 @@ function addToCart(idToAdd, colorToAdd, quantityToAdd) {
     
         if (alreadyInCart == true) {
             localStorage.setItem("cartData", JSON.stringify(cartData));
+            alert("Produit ajouté au panier avec succès");
         } else {
             cartData.push(new product(idToAdd, colorToAdd, quantityToAdd));
             localStorage.setItem("cartData", JSON.stringify(cartData));
+            alert("Produit ajouté au panier avec succès");
         };
 
     } else { 
         cartData = [];
         cartData.push(new product(idToAdd, colorToAdd, quantityToAdd));
-        localStorage.setItem("cartData", JSON.stringify(cartData)); 
+        localStorage.setItem("cartData", JSON.stringify(cartData));
+        alert("Produit ajouté au panier avec succès"); 
     }
 };
-
 
 
