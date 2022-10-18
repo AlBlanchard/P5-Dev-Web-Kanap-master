@@ -9,121 +9,185 @@ try {
 };
 
 
-if (cartIsEmpty(cartData) == true) {
-    emptyHTML();
+if (cartData == "" || cartData == undefined) {
+    emptyMessageHTML();
 } else {
-    cartListing(cartData);
+    fetch(urlAPI) 
+    .then(apiData => apiData.json())
+    .then(apiData => {
+        isDataValid(apiData, cartData);
+        cartListingHTML(apiData, cartData);
+        eventListener();
+    })
+    .catch(err => console.log("Erreur API", err));
 };
 
-
-function cartIsEmpty(localStorageData) {
-    if (localStorageData == "" || localStorageData == undefined) {
-        return true;
-    } else {
-        return false;
-    }
-};
-
-function emptyHTML() {
+function emptyMessageHTML() {
     const emptyElement = document.createElement("h2");
     const emptyText = document.createTextNode("Votre panier est vide.");
     emptyElement.appendChild(emptyText);
     cartSection.appendChild(emptyElement);
 };
 
-// Appelle l'API
-function cartListing(localStorageData) {
-    fetch(urlAPI) 
-    .then(res => res.json())
-    .then(kanapAPI => {
-        cartProductFinder(kanapAPI, localStorageData);
-        eventListener();
-        return kanapAPI;
-    })
-    .catch(err => console.log("Erreur API", err));
-};
+function isDataValid(apiData, cartData) {
+    for(let i in cartData) {
+        let dataValid = false;
 
-// Cherche les différentes informations des produits, vérifie les données et créer les éléments HTML
-function cartProductFinder(dataAPI, localStorageData) {
-    for(let i in localStorageData) {
-        let productFound = false;
-
-        for(let productAPI of dataAPI) {
-            if(productAPI._id == localStorageData[i].id) {
-                if(isDataValid(productAPI.colors, localStorageData[i])) {
-                    productFound = true;
-                    productHTML(productAPI, localStorageData[i]);
+        for(let productApi of apiData) {
+            if(productApi._id == cartData[i].id) {
+                if(cartData[i].quantity >= 1 && cartData[i].quantity <= 100) {
+                    if(Number.isInteger(Number(cartData[i].quantity))) {
+                        for(color of productApi.colors) {
+                            if(color == cartData[i].color) {
+                                dataValid = true;
+                            }
+                        }
+                    }
                 }
             }
         }
-        
-        if(productFound == false) {
-            console.error("Un produit a été supprimé dans le panier car ses informations ne sont pas valide", localStorageData[i])
-            localStorageData.splice(i, 1);
-            if (cartIsEmpty(cartData) == true) {
-                emptyHTML();
-            } else {
-                cartListing(cartData);
-            };
+
+        if(dataValid == false) {
+            console.error("Un produit a été supprimé dans le panier car ses données ne sont pas valides", cartData[i])
+            cartData.splice(i, 1);
         }
+
+        localStorage.setItem("cartData", JSON.stringify(cartData));
     }
-    localStorage.setItem("cartData", JSON.stringify(localStorageData));
 };
 
-// Vérifie si le nombre et la couleur sont valides 
-function isDataValid(objectColorAPI, objectLocalStorage) {
-    let dataValid = false;
+// Créer les éléments HTML du panier
+function cartListingHTML(apiData, cartData) {
+    if (cartData == "" || cartData == undefined) {
+        emptyMessageHTML();
+    } else { 
+        for(let i in cartData) {
+            // Const block
+            const articleElement = document.createElement("article");
+            articleElement.setAttribute("class", "cart__item");
 
-    if(objectLocalStorage.quantity >= 1 && objectLocalStorage.quantity <= 100) {
-        if(Number.isInteger(Number(objectLocalStorage.quantity))) {
-            for(color of objectColorAPI) {
-                if(color == objectLocalStorage.color) {
-                    dataValid = true;
+            const divImgElement = document.createElement("div");
+            divImgElement.setAttribute("class", "cart__item__img");
+
+            const imgElement = document.createElement("img");
+            divImgElement.appendChild(imgElement);
+
+            const divContentElement = document.createElement("div");
+            divContentElement.setAttribute("class", "cart__item__content");
+
+            const divDescriptionElement = document.createElement("div");
+            divDescriptionElement.setAttribute("class", "cart__item__content__description");
+
+            const nameElement = document.createElement("h2");
+            const colorElement = document.createElement("p");
+            const priceElement = document.createElement("p");
+            divDescriptionElement.appendChild(nameElement);
+            divDescriptionElement.appendChild(colorElement);
+            divDescriptionElement.appendChild(priceElement);
+
+            const divSettingsElement = document.createElement("div");
+            divSettingsElement.setAttribute("class", "cart__item__content__settings");
+
+            const divQuantityElement = document.createElement("div");
+            divQuantityElement.setAttribute("class", "cart__item__content__settings__quantity");
+
+            const pQuantityElement = document.createElement("p");
+
+            const inputQuantityElement = document.createElement("input");
+            inputQuantityElement.setAttribute("type", "number");
+            inputQuantityElement.setAttribute("class", "itemQuantity");
+            inputQuantityElement.setAttribute("name", "itemQuantity");
+            inputQuantityElement.setAttribute("min", "1");
+            inputQuantityElement.setAttribute("max", "100");
+            divQuantityElement.appendChild(pQuantityElement);
+            divQuantityElement.appendChild(inputQuantityElement);
+
+            const divDeleteElement = document.createElement("div");
+            divDeleteElement.setAttribute("class", "cart__item__content__settings__delete");
+
+            const pDeleteElement = document.createElement("p");
+            pDeleteElement.setAttribute("class", "deleteItem");
+            pDeleteElement.appendChild(document.createTextNode("Supprimer"));
+
+            divDeleteElement.appendChild(pDeleteElement);
+            divSettingsElement.appendChild(divQuantityElement);
+            divSettingsElement.appendChild(divDeleteElement);
+            divContentElement.appendChild(divDescriptionElement);
+            divContentElement.appendChild(divSettingsElement);
+
+            articleElement.appendChild(divImgElement);
+            articleElement.appendChild(divContentElement);
+            //Const block end
+
+            articleElement.setAttribute("data-id", cartData[i].id);
+            articleElement.setAttribute("data-color", cartData[i].color);
+
+            colorElement.appendChild(document.createTextNode(cartData[i].color));
+
+            pQuantityElement.appendChild(document.createTextNode(`Qté : ${cartData[i].quantity}`));
+            inputQuantityElement.setAttribute("value", cartData[i].quantity);
+
+            for(let productApi of apiData) {
+                if(productApi._id == cartData[i].id) {
+                    imgElement.setAttribute("src", productApi.imageUrl);
+                    imgElement.setAttribute("alt", productApi.altTxt);
+
+                    nameElement.appendChild(document.createTextNode(productApi.name));
+                    priceElement.appendChild(document.createTextNode(`${productApi.price} €`));
                 }
             }
-        } else {
-            dataValid = false;
+
+            cartSection.insertAdjacentElement("beforeend", articleElement);
         }
     }
-    return dataValid;
-};
+}
 
-// Créer les éléments HTML
-function productHTML(objectAPI, objectLocalStorage) {
-    cartSection.innerHTML += `<article class="cart__item" data-id="${objectLocalStorage.id}" data-color="${objectLocalStorage.color}">
 
-                                <div class="cart__item__img">
-                                    <img src="${objectAPI.imageUrl}" alt="${objectAPI.altTxt}">
-                                </div>
 
-                                <div class="cart__item__content">
-                                    <div class="cart__item__content__description">
-                                        <h2>${objectAPI.name}</h2>
-                                        <p>${objectLocalStorage.color}</p>
-                                        <p>${objectAPI.price} €</p>
-                                    </div>
 
-                                    <div class="cart__item__content__settings">
-                                        <div class="cart__item__content__settings__quantity">
-                                            <p>Qté : ${objectLocalStorage.quantity}</p>
-                                            <input type="number" class="itemQuantity" name="itemQuantity" min="1" max="100" value="${objectLocalStorage.quantity}">
-                                        </div>
-                                        
-                                        <div class="cart__item__content__settings__delete">
-                                            <p class="deleteItem">Supprimer</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </article>`;
-};
+//    cartSection.innerHTML += `<article class="cart__item" data-id="${objectLocalStorage.id}" data-color="${objectLocalStorage.color}">
+//
+//                                <div class="cart__item__img">
+//                                    <img src="${objectAPI.imageUrl}" alt="${objectAPI.altTxt}">
+//                                </div>
+//
+//                                <div class="cart__item__content">
+//                                    <div class="cart__item__content__description">
+//                                        <h2>${objectAPI.name}</h2>
+//                                        <p>${objectLocalStorage.color}</p>
+//                                        <p>${objectAPI.price} €</p>
+//                                    </div>
+//
+//                                    <div class="cart__item__content__settings">
+//                                        <div class="cart__item__content__settings__quantity">
+//                                            <p>Qté : ${objectLocalStorage.quantity}</p>
+//                                            <input type="number" class="itemQuantity" name="itemQuantity" min="1" max="100" value="${objectLocalStorage.quantity}">
+//                                        </div>
+//                                        
+//                                        <div class="cart__item__content__settings__delete">
+//                                            <p class="deleteItem">Supprimer</p>
+//                                        </div>
+//                                    </div>
+//                                </div>
+//                            </article>`;
+//};
 
 function eventListener() {
-    const deleteButtonList = document.querySelectorAll(".deleteItem");
+    const quantityInputList = document.querySelectorAll(".itemQuantity");
 
-    for(let i in deleteButtonList) {
-        deleteButtonList[i].addEventListener("click", () => {
-            console.log("bonjour");
+    for(let quantityInput of quantityInputList) {
+        quantityInput.addEventListener("change", () => {
+            if (quantityInput.value > 100) {
+                quantityInput.value = 100;
+            } else if (quantityInput.value < 1) {
+                quantityInput.value = 1;
+            } else {
+                quantityInput.value = Math.round(quantityInput.value);
+            }
         });
     }
 };
+
+
+
 
