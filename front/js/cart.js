@@ -17,7 +17,8 @@ if (cartData == "" || cartData == undefined) {
     .then(apiData => {
         isDataValid(apiData, cartData);
         cartListingHTML(apiData, cartData);
-        eventListener();
+        quantityChange(cartData);
+        deleteAction(cartData);
     })
     .catch(err => console.log("Erreur API", err));
 };
@@ -50,9 +51,12 @@ function isDataValid(apiData, cartData) {
         if(dataValid == false) {
             console.error("Un produit a été supprimé dans le panier car ses données ne sont pas valides", cartData[i])
             cartData.splice(i, 1);
+            localStorage.setItem("cartData", JSON.stringify(cartData));
+            return false;
+        } else {
+            localStorage.setItem("cartData", JSON.stringify(cartData));
+            return true;
         }
-
-        localStorage.setItem("cartData", JSON.stringify(cartData));
     }
 };
 
@@ -172,10 +176,12 @@ function cartListingHTML(apiData, cartData) {
 //                            </article>`;
 //};
 
-function eventListener() {
+function quantityChange(cartData) {
     const quantityInputList = document.querySelectorAll(".itemQuantity");
 
     for(let quantityInput of quantityInputList) {
+        const articleParentElement = quantityInput.parentElement.parentElement.parentElement.parentElement;
+
         quantityInput.addEventListener("change", () => {
             if (quantityInput.value > 100) {
                 quantityInput.value = 100;
@@ -184,10 +190,77 @@ function eventListener() {
             } else {
                 quantityInput.value = Math.round(quantityInput.value);
             }
+
+            for(let product of cartData) {
+                if(product.id == articleParentElement.dataset.id) {
+                    if(product.color == articleParentElement.dataset.color) {
+                        product.quantity = quantityInput.value;
+                    }
+                }
+            }
+            quantityInput.previousElementSibling.innerHTML = `Qté : ${quantityInput.value}`;
+            localStorage.setItem("cartData", JSON.stringify(cartData));
         });
     }
 };
 
+function deleteAction(cartData) {
+    const deleteButtonList = document.querySelectorAll(".deleteItem");
 
+    for(let deleteButton of deleteButtonList) {
+        const articleParentElement = deleteButton.parentElement.parentElement.parentElement.parentElement;
 
+        deleteButton.addEventListener("click", () => {
+            for(let i in cartData) {
+                if(cartData[i].id == articleParentElement.dataset.id) {
+                    if(cartData[i].color == articleParentElement.dataset.color) {
+                        cartData.splice(i, 1);
+                    }
+                }
+            }
 
+            articleParentElement.remove();
+            localStorage.setItem("cartData", JSON.stringify(cartData));
+            if(cartData == "" || cartData == undefined) {
+                emptyMessageHTML();
+            }
+        });
+    }
+}
+
+const orderButton = document.getElementById("order");
+
+orderButton.addEventListener("click", () => {
+    cartData = JSON.parse(localStorage.getItem("cartData"));
+    if (body.contact.firstName) {
+        alert("Un champs du formulaire est mal renseigné");
+    } else if (cartData == "" || cartData == undefined) {
+        alert("Impossible de commander, votre panier est vide !");
+    } else {
+        fetch(urlAPI) 
+        .then(apiData => apiData.json())
+        .then(apiData => {
+            if(isDataValid(apiData, cartData) == true) {
+
+            } else {
+                alert("Une erreur est survenue lors de votre commande, les données renseignées ne sont plus valides.")
+            }
+        })
+        .catch(err => console.log("Erreur API", err));
+    };
+});
+
+function formError() {
+    const formElement = document.querySelector("form");
+    const inputsElement = formElement.querySelectorAll("input");
+    const formErr = ["prénom", "nom", "adresse", "ville", "adresse e-mail"]
+
+    for(let i = 0; i <= 4; i++) {
+        if(inputsElement[i].value == "" || inputsElement[i].value == undefined) {
+            let formErrMessage = `Veuillez renseigner votre ${formErr[i]}`
+            inputsElement[i].nextElementSibling.innerHTML = formErrMessage;
+        }
+    }
+}
+
+formError();
