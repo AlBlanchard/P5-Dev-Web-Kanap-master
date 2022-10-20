@@ -230,37 +230,74 @@ function deleteAction(cartData) {
 
 const orderButton = document.getElementById("order");
 
-orderButton.addEventListener("click", () => {
+orderButton.addEventListener("click", (order) => {
+    order.preventDefault()
     cartData = JSON.parse(localStorage.getItem("cartData"));
-    if (body.contact.firstName) {
-        alert("Un champs du formulaire est mal renseigné");
-    } else if (cartData == "" || cartData == undefined) {
-        alert("Impossible de commander, votre panier est vide !");
+    if (isformValid()) {
+        if (isDataValid(apiData, cartData)) {
+        } else {
+            alert("Une erreur est survenue lors de votre commande, les données renseignées ne sont plus valides.")
+        }
     } else {
-        fetch(urlAPI) 
-        .then(apiData => apiData.json())
-        .then(apiData => {
-            if(isDataValid(apiData, cartData) == true) {
-
-            } else {
-                alert("Une erreur est survenue lors de votre commande, les données renseignées ne sont plus valides.")
-            }
-        })
-        .catch(err => console.log("Erreur API", err));
-    };
-});
-
-function formError() {
-    const formElement = document.querySelector("form");
-    const inputsElement = formElement.querySelectorAll("input");
-    const formErr = ["prénom", "nom", "adresse", "ville", "adresse e-mail"]
-
-    for(let i = 0; i <= 4; i++) {
-        if(inputsElement[i].value == "" || inputsElement[i].value == undefined) {
-            let formErrMessage = `Veuillez renseigner votre ${formErr[i]}`
-            inputsElement[i].nextElementSibling.innerHTML = formErrMessage;
+        for(input of inputsElement) {
+            input.addEventListener("change", () => {
+                isformValid();
+            });
         }
     }
+});
+
+let formValid = true
+const formElement = document.querySelector("form");
+const inputsElement = formElement.querySelectorAll("input");
+
+function isformValid() {
+    const formErr = ["prénom", "nom", "adresse", "ville", "adresse e-mail"];
+
+    // Pratique pour tester les Regex : https://www.regexpal.com/
+    const firstNameRegex = /^[\w'\-,.][^0-9_!¡?÷?¿/\\+=@#$%ˆ&*(){}|~<>;:[\]]{1,}$/g;
+    const lastNameRegex = /^[\w'\-,.][^0-9_!¡?÷?¿/\\+=@#$%ˆ&*(){}|~<>;:[\]]{1,}$/g;
+    const cityRegex = /^[\w'\-,.][^0-9_!¡?÷?¿/\\+=@#$%ˆ&*(){}|~<>;:[\]]{1,}$/g;
+
+    const mailRegex = /^(?:[0-9a-zA-z.]+@[a-zA-Z]{2,}[/.][a-zA-Z]{2,4}|)$/g;
+    const adressRegex = /^[\w'\-,.][^_!¡?÷?¿/\\+=@#$%ˆ&*(){}|~<>[\]]{1,}$/g;
+
+    let formErrMessage = "";
+
+    formValid = true
+    
+    for(let i = 0; i <= 4; i++) {
+        if (inputsElement[i].value == "" || inputsElement[i].value == undefined) {
+            formErrMessage = `Veuillez renseigner votre ${formErr[i]}`
+            formValid = false;
+
+        } else if (i == 0 && !firstNameRegex.test(inputsElement[i].value)) {
+            formErrMessage = `Le ${formErr[i]} renseigné n'est pas valide`;
+            formValid = false;
+
+        } else if (i == 1 && !lastNameRegex.test(inputsElement[i].value)) {
+            formErrMessage = `Le ${formErr[i]} renseigné n'est pas valide`;
+            formValid = false;
+
+        } else if (i == 2 && !adressRegex.test(inputsElement[i].value)) {
+            formErrMessage = `Votre ${formErr[i]} ne doit pas comprendre de caractères spéciaux`;
+            formValid = false;
+
+        } else if (i == 3 && !cityRegex.test(inputsElement[i].value)) {
+            formErrMessage = `La ${formErr[i]} renseignée n'est pas valide`;
+            formValid = false;
+
+        } else if (i == 4 && !mailRegex.test(inputsElement[i].value)) {
+            formErrMessage = `L'${formErr[i]} renseignée n'est pas valide`;
+            formValid = false;
+
+        } else {
+            formErrMessage = "";
+        }
+
+        inputsElement[i].nextElementSibling.innerHTML = formErrMessage;
+    }
+    return formValid;
 }
 
-formError();
+
