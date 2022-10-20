@@ -1,4 +1,4 @@
-const urlAPI = "http://localhost:3000/api/products";
+const urlAPI = "http://localhost:3000/api/products/";
 const cartSection = document.getElementById("cart__items")
 let cartData = JSON.parse(localStorage.getItem("cartData"));
 
@@ -8,19 +8,45 @@ try {
     localStorage.clear();
 };
 
+cartListing();
 
-if (cartData == "" || cartData == undefined) {
-    emptyMessageHTML();
-} else {
-    fetch(urlAPI) 
-    .then(apiData => apiData.json())
-    .then(apiData => {
-        isDataValid(apiData, cartData);
-        cartListingHTML(apiData, cartData);
-        quantityChange(cartData);
-        deleteAction(cartData);
-    })
-    .catch(err => console.log("Erreur API", err));
+function cartListing() {
+    let test = false;
+    for(let i in cartData) {
+        fetch(urlAPI + cartData[i].id) 
+            .then(res => {
+                // Condition en cas d'erreur 404
+                if(res.ok) {
+                    res.json().then(apiProductData => {
+                        test = true;
+                        // Vérification des données, inscrit dans le HTML ou supprime si données non valides
+                        if (isDataValid(apiProductData, cartData[i])) {
+                            insertInHTML(apiProductData, cartData[i]);
+                        } else {
+                            console.error("Un produit a été supprimé du panier car ses données ne sont pas valides", cartData[i]);
+                            cartData.splice(i, 1);
+                            localStorage.setItem("cartData", JSON.stringify(cartData));
+
+                            if (cartData == "" || cartData == undefined) {
+                                emptyMessageHTML();
+                            }
+                        }
+                    });
+                } else {
+                    console.error("Un produit a été supprimé du panier car ses données ne sont pas valides", cartData[i]);
+                    cartData.splice(i, 1);
+                    localStorage.setItem("cartData", JSON.stringify(cartData));
+
+                    if (cartData == "" || cartData == undefined) {
+                        emptyMessageHTML();
+                    }
+                }
+            })
+            .catch(err => {
+                console.log("Erreur API", err);
+        })
+    }
+    console.log(test);
 };
 
 function emptyMessageHTML() {
@@ -30,121 +56,49 @@ function emptyMessageHTML() {
     cartSection.appendChild(emptyElement);
 };
 
-function isDataValid(apiData, cartData) {
-    for(let i in cartData) {
-        let dataValid = false;
+function isDataValid(apiProductData, cartProductData) {
+    let dataValid = false;
 
-        for(let productApi of apiData) {
-            if(productApi._id == cartData[i].id) {
-                if(cartData[i].quantity >= 1 && cartData[i].quantity <= 100) {
-                    if(Number.isInteger(Number(cartData[i].quantity))) {
-                        for(color of productApi.colors) {
-                            if(color == cartData[i].color) {
-                                dataValid = true;
-                            }
-                        }
-                    }
+    if(cartProductData.quantity >= 1 && cartProductData.quantity <= 100) {
+        if(Number.isInteger(Number(cartProductData.quantity))) {
+            for(color of apiProductData.colors) {
+                if(color == cartProductData.color) {
+                    dataValid = true;
                 }
             }
         }
-
-        if(dataValid == false) {
-            console.error("Un produit a été supprimé dans le panier car ses données ne sont pas valides", cartData[i])
-            cartData.splice(i, 1);
-            localStorage.setItem("cartData", JSON.stringify(cartData));
-            return false;
-        } else {
-            localStorage.setItem("cartData", JSON.stringify(cartData));
-            return true;
-        }
     }
+    return dataValid;
 };
 
 // Créer les éléments HTML du panier
-function cartListingHTML(apiData, cartData) {
-    if (cartData == "" || cartData == undefined) {
-        emptyMessageHTML();
-    } else { 
-        for(let i in cartData) {
-            // Const block
-            const articleElement = document.createElement("article");
-            articleElement.setAttribute("class", "cart__item");
+function insertInHTML(apiProductData, cartProductData) {
+    cartSection.innerHTML += `<article class="cart__item" data-id="${cartProductData.id}" data-color="${cartProductData.color}">
 
-            const divImgElement = document.createElement("div");
-            divImgElement.setAttribute("class", "cart__item__img");
+                                <div class="cart__item__img">
+                                    <img src="${apiProductData.imageUrl}" alt="${apiProductData.altTxt}">
+                                </div>
 
-            const imgElement = document.createElement("img");
-            divImgElement.appendChild(imgElement);
+                                <div class="cart__item__content">
+                                    <div class="cart__item__content__description">
+                                        <h2>${apiProductData.name}</h2>
+                                        <p>${cartProductData.color}</p>
+                                        <p>${apiProductData.price} €</p>
+                                    </div>
 
-            const divContentElement = document.createElement("div");
-            divContentElement.setAttribute("class", "cart__item__content");
-
-            const divDescriptionElement = document.createElement("div");
-            divDescriptionElement.setAttribute("class", "cart__item__content__description");
-
-            const nameElement = document.createElement("h2");
-            const colorElement = document.createElement("p");
-            const priceElement = document.createElement("p");
-            divDescriptionElement.appendChild(nameElement);
-            divDescriptionElement.appendChild(colorElement);
-            divDescriptionElement.appendChild(priceElement);
-
-            const divSettingsElement = document.createElement("div");
-            divSettingsElement.setAttribute("class", "cart__item__content__settings");
-
-            const divQuantityElement = document.createElement("div");
-            divQuantityElement.setAttribute("class", "cart__item__content__settings__quantity");
-
-            const pQuantityElement = document.createElement("p");
-
-            const inputQuantityElement = document.createElement("input");
-            inputQuantityElement.setAttribute("type", "number");
-            inputQuantityElement.setAttribute("class", "itemQuantity");
-            inputQuantityElement.setAttribute("name", "itemQuantity");
-            inputQuantityElement.setAttribute("min", "1");
-            inputQuantityElement.setAttribute("max", "100");
-            divQuantityElement.appendChild(pQuantityElement);
-            divQuantityElement.appendChild(inputQuantityElement);
-
-            const divDeleteElement = document.createElement("div");
-            divDeleteElement.setAttribute("class", "cart__item__content__settings__delete");
-
-            const pDeleteElement = document.createElement("p");
-            pDeleteElement.setAttribute("class", "deleteItem");
-            pDeleteElement.appendChild(document.createTextNode("Supprimer"));
-
-            divDeleteElement.appendChild(pDeleteElement);
-            divSettingsElement.appendChild(divQuantityElement);
-            divSettingsElement.appendChild(divDeleteElement);
-            divContentElement.appendChild(divDescriptionElement);
-            divContentElement.appendChild(divSettingsElement);
-
-            articleElement.appendChild(divImgElement);
-            articleElement.appendChild(divContentElement);
-            //Const block end
-
-            articleElement.setAttribute("data-id", cartData[i].id);
-            articleElement.setAttribute("data-color", cartData[i].color);
-
-            colorElement.appendChild(document.createTextNode(cartData[i].color));
-
-            pQuantityElement.appendChild(document.createTextNode(`Qté : ${cartData[i].quantity}`));
-            inputQuantityElement.setAttribute("value", cartData[i].quantity);
-
-            for(let productApi of apiData) {
-                if(productApi._id == cartData[i].id) {
-                    imgElement.setAttribute("src", productApi.imageUrl);
-                    imgElement.setAttribute("alt", productApi.altTxt);
-
-                    nameElement.appendChild(document.createTextNode(productApi.name));
-                    priceElement.appendChild(document.createTextNode(`${productApi.price} €`));
-                }
-            }
-
-            cartSection.insertAdjacentElement("beforeend", articleElement);
-        }
-    }
-}
+                                    <div class="cart__item__content__settings">
+                                        <div class="cart__item__content__settings__quantity">
+                                            <p>Qté : ${cartProductData.quantity}</p>
+                                            <input type="number" class="itemQuantity" name="itemQuantity" min="1" max="100" value="${cartProductData.quantity}">
+                                        </div>
+                                        
+                                        <div class="cart__item__content__settings__delete">
+                                            <p class="deleteItem">Supprimer</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </article>`;
+};
 
 
 
@@ -176,7 +130,7 @@ function cartListingHTML(apiData, cartData) {
 //                            </article>`;
 //};
 
-function quantityChange(cartData) {
+async function quantityChange(cartData) {
     const quantityInputList = document.querySelectorAll(".itemQuantity");
 
     for(let quantityInput of quantityInputList) {
@@ -204,7 +158,7 @@ function quantityChange(cartData) {
     }
 };
 
-function deleteAction(cartData) {
+async function deleteAction(cartData) {
     const deleteButtonList = document.querySelectorAll(".deleteItem");
 
     for(let deleteButton of deleteButtonList) {
