@@ -126,12 +126,11 @@ function addToCart(idToAdd, colorToAdd, quantityToAdd) {
         // Cherche si le produit est déjà dans le panier et agit en conséquence
         for(let productClass of cartData) {
             if(productClass.id == idToAdd && productClass.color == colorToAdd) {
-                productClass.quantity = Number(productClass.quantity) + Number(quantityToAdd);
+                productClass.quantity = productClass.quantity + quantityToAdd;
                 if(productClass.quantity > 100) {
                     productClass.quantity = 100;
                 }
                 alreadyInCart = true;
-                console.log(productClass.quantity);
             }
         };
     
@@ -172,7 +171,7 @@ addToCartButton.addEventListener("click", () => {
     if ((colorSelector.value == "" && quantitySelector.value == 0) || colorSelector.value == "" || quantitySelector.value == 0) {
     notSelectedError();
     } else {
-    addToCart(urlID, colorSelector.value, quantitySelector.value);
+    addToCart(urlID, colorSelector.value, Number(quantitySelector.value));
     }
 });
 
