@@ -155,7 +155,7 @@ const total = async (cartData) => {
 
     let totalHtml = "";
 
-    if(cartData == [] || cartData == undefined) {
+    if(isEmpty(cartData)) {
         totalQuantity = 0;
         totalPrice = 0;
         articleS = "article";
@@ -194,6 +194,14 @@ function deleteData(cartData, arrayIndex) {
     }
 }
 
+function isEmpty(cartData) {
+    if (cartData == [] || cartData == undefined || cartData == "") {
+        return true;
+    } else {
+        return false;
+    }
+}
+
 function emptyMessageHTML() {
     const emptyElement = document.createElement("h2");
     const emptyText = document.createTextNode("Votre panier est vide.");
@@ -201,9 +209,135 @@ function emptyMessageHTML() {
     cartSection.appendChild(emptyElement);
 };
 
-if(cartData == [] || cartData == undefined || cartData == "") {
+if(isEmpty(cartData)) {
     emptyMessageHTML();
     total(cartData);
 } else {
     cartToDom(cartData);
+}
+
+const orderButton = document.getElementById("order");
+
+orderButton.addEventListener("click", (order) => {
+    order.preventDefault()
+    cartData = JSON.parse(localStorage.getItem("cartData"));
+    if (isEmpty(cartData) == false) {
+        if (isformValid()) {
+            if (isDataValid(cartData)) {
+                apiPost(cartData);
+                localStorage.clear();
+            } else {
+                alert("Une erreur est survenue lors de votre commande, les données renseignées ne sont plus valides.");
+            }
+
+        } else {
+            for(input of inputsElement) {
+                input.addEventListener("change", () => {
+                    isformValid();
+                });
+            }
+        }
+
+    } else {
+        alert("Votre panier est vide !");
+    }
+});
+
+let formValid = true
+const formElement = document.querySelector("form");
+const inputsElement = formElement.querySelectorAll("input");
+
+function isformValid() {
+    const formErr = ["prénom", "nom", "adresse", "ville", "adresse e-mail"];
+
+    // Pratique pour tester les Regex : https://www.regexpal.com/
+    const firstNameRegex = /^[\w'\-,.][^0-9_!¡?÷?¿/\\+=@#$%ˆ&*(){}|~<>;:[\]]{1,}$/g;
+    const lastNameRegex = /^[\w'\-,.][^0-9_!¡?÷?¿/\\+=@#$%ˆ&*(){}|~<>;:[\]]{1,}$/g;
+    const cityRegex = /^[\w'\-,.][^0-9_!¡?÷?¿/\\+=@#$%ˆ&*(){}|~<>;:[\]]{1,}$/g;
+
+    const mailRegex = /^(?:[0-9a-zA-z.]+@[a-zA-Z]{2,}[/.][a-zA-Z]{2,4}|)$/g;
+    const adressRegex = /^[\w'\-,.][^_!¡?÷?¿/\\+=@#$%ˆ&*(){}|~<>[\]]{1,}$/g;
+
+    let formErrMessage = "";
+
+    formValid = true
+    
+    for(let i = 0; i <= 4; i++) {
+        if (inputsElement[i].value == "" || inputsElement[i].value == undefined) {
+            formErrMessage = `Veuillez renseigner votre ${formErr[i]}`
+            formValid = false;
+
+        } else if (i == 0 && !firstNameRegex.test(inputsElement[i].value)) {
+            formErrMessage = `Le ${formErr[i]} renseigné n'est pas valide`;
+            formValid = false;
+
+        } else if (i == 1 && !lastNameRegex.test(inputsElement[i].value)) {
+            formErrMessage = `Le ${formErr[i]} renseigné n'est pas valide`;
+            formValid = false;
+
+        } else if (i == 2 && !adressRegex.test(inputsElement[i].value)) {
+            formErrMessage = `Votre ${formErr[i]} ne doit pas comprendre de caractères spéciaux`;
+            formValid = false;
+
+        } else if (i == 3 && !cityRegex.test(inputsElement[i].value)) {
+            formErrMessage = `La ${formErr[i]} renseignée n'est pas valide`;
+            formValid = false;
+
+        } else if (i == 4 && !mailRegex.test(inputsElement[i].value)) {
+            formErrMessage = `L'${formErr[i]} renseignée n'est pas valide`;
+            formValid = false;
+
+        } else {
+            formErrMessage = "";
+        }
+
+        inputsElement[i].nextElementSibling.innerHTML = formErrMessage;
+    }
+    
+    return formValid;
+}
+
+let contact = {
+    firstName: "Alexis",
+    lastName: "Blanchard",
+    address: "14 rue de la carpe Haute",
+    city: "Strasbourg",
+    mail: "alexis@gmail.com"
+}
+
+
+let jsonPostData = async (cartData) => {
+let postRequest = {
+    contact: {
+        firstName: inputsElement[0].value,
+        lastName: inputsElement[1].value,
+        address: inputsElement[2].value,
+        city: inputsElement[3].value,
+        email: inputsElement[4].value,
+    },
+
+    products: []
+};
+    for(product of cartData) {
+        postRequest.products.push(product.id);
+    }
+
+    return postRequest;
+}
+
+
+
+const apiPost = async (cartData) => {
+    let postRequest = await jsonPostData(cartData);
+
+    let apiPostResponse = await fetch(urlAPI + "order", {
+        method : "POST",
+        headers: {
+            'Content-Type': 'application/json;charset=utf-8'
+          },
+          body: JSON.stringify(postRequest)
+    });
+    
+    let result = await apiPostResponse.json();
+    document.location.href=`../html/confirmation.html?orderId=${result.orderId}`;
 }
