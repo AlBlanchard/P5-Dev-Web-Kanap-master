@@ -54,13 +54,7 @@ async function isDataValid(cartData) {
     // Supprime les données incorrectes listées précédement
     if(invalidIndex !== []) {
         deleteData(cartData, invalidIndex);
-
-        if(isEmpty(cartData)) {
-            emptyMessageHTML();
-        } else {
-            return true;
-        }
-
+        return false;
     } else {
         return true;
     }
@@ -68,35 +62,39 @@ async function isDataValid(cartData) {
 
 // Liste les éléments du panier dans le DOM
 async function cartListing(cartData) {
-    for(let i in cartData) {
-        const apiProduct = await apiResponse(cartData, i);
+    if(isEmpty(cartData)) {
+        emptyMessageHTML();
+    } else {    
+        for(let i in cartData) {
+            const apiProduct = await apiResponse(cartData, i);
 
-        cartSection.innerHTML += 
+            cartSection.innerHTML += 
 
-        `<article class="cart__item" data-id="${cartData[i].id}" data-color="${cartData[i].color}">
-            <div class="cart__item__img">
-                <img src="${apiProduct.imageUrl}" alt="${apiProduct.altTxt}">
-            </div>
-
-            <div class="cart__item__content">
-                <div class="cart__item__content__description">
-                    <h2>${apiProduct.name}</h2>
-                    <p>${cartData[i].color}</p>
-                    <p>${apiProduct.price} €</p>
+            `<article class="cart__item" data-id="${cartData[i].id}" data-color="${cartData[i].color}">
+                <div class="cart__item__img">
+                    <img src="${apiProduct.imageUrl}" alt="${apiProduct.altTxt}">
                 </div>
 
-                <div class="cart__item__content__settings">
-                    <div class="cart__item__content__settings__quantity">
-                        <p>Qté : ${cartData[i].quantity}</p>
-                        <input type="number" class="itemQuantity" name="itemQuantity" min="1" max="100" value="${cartData[i].quantity}">
+                <div class="cart__item__content">
+                    <div class="cart__item__content__description">
+                        <h2>${apiProduct.name}</h2>
+                        <p>${cartData[i].color}</p>
+                        <p>${apiProduct.price} €</p>
                     </div>
-                    
-                    <div class="cart__item__content__settings__delete">
-                        <p class="deleteItem">Supprimer</p>
+
+                    <div class="cart__item__content__settings">
+                        <div class="cart__item__content__settings__quantity">
+                            <p>Qté : ${cartData[i].quantity}</p>
+                            <input type="number" class="itemQuantity" name="itemQuantity" min="1" max="100" value="${cartData[i].quantity}">
+                        </div>
+                        
+                        <div class="cart__item__content__settings__delete">
+                            <p class="deleteItem">Supprimer</p>
+                        </div>
                     </div>
                 </div>
-            </div>
-        </article>`;
+            </article>`;
+        }
     }
 }
 
@@ -236,6 +234,31 @@ async function apiPost(cartData) {
     document.location.href=`../html/confirmation.html?orderId=${result.orderId}`;
 }
 
+// Vérifie si le panier est vide, si le formulaire est valide, si les donnés sont valides, et envoie les donnés à l'API
+async function orderAction(cartData) {
+    if (isEmpty(cartData) == false) {
+        if (isformValid()) {
+            if (await isDataValid(cartData)) {
+                apiPost(cartData);
+                localStorage.clear();
+            } else {
+                alert("Une erreur est survenue lors de votre commande, les données renseignées ne sont plus valides.");
+                location.reload();
+            }
+
+        } else {
+            for(input of inputsElement) {
+                input.addEventListener("change", () => {
+                    isformValid();
+                });
+            }
+        }
+
+    } else {
+        alert("Votre panier est vide !");
+    }
+}
+
 // --------------------------------------- FONCTIONS SYNCHRONES --------------------------------------- //
 
 // Comme son nom l'indique, vérifie sur le panier est vide
@@ -256,7 +279,7 @@ function emptyMessageHTML() {
 };
 
 // Supprime les données listés dans le cartData
-function deleteData(cartData, arrayIndex) {
+async function deleteData(cartData, arrayIndex) {
     for(index of arrayIndex) {
         console.error("Ces données ont été supprimées car elles ne sont pas valides :", cartData[index]);
         cartData.splice(index, 1);
@@ -325,30 +348,12 @@ if(isEmpty(cartData)) {
     cartToDom(cartData);
 }
 
-// Event Listener pour le boutton "commander", vérifie si le panier est vide, si le formulaire est valide, si les donnés sont valides, et envoie les donnés à l'API
+
+// Event Listener pour le boutton "commander"
 orderButton.addEventListener("click", (order) => {
-    order.preventDefault()
+    order.preventDefault();
     cartData = JSON.parse(localStorage.getItem("cartData"));
-    if (isEmpty(cartData) == false) {
-        if (isformValid()) {
-            if (isDataValid(cartData)) {
-                apiPost(cartData);
-                localStorage.clear();
-            } else {
-                alert("Une erreur est survenue lors de votre commande, les données renseignées ne sont plus valides.");
-            }
-
-        } else {
-            for(input of inputsElement) {
-                input.addEventListener("change", () => {
-                    isformValid();
-                });
-            }
-        }
-
-    } else {
-        alert("Votre panier est vide !");
-    }
+    orderAction(cartData);
 });
 
 

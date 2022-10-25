@@ -1,7 +1,7 @@
 const pageTitle = document.querySelector("Title");
-const urlQuery = window.location.search;
-const urlParamSplit = new URLSearchParams(urlQuery);
-const urlID = urlParamSplit.get("id");
+const url = window.location.search;
+const urlQuery = new URLSearchParams(url);
+const urlID = urlQuery.get("id");
 const urlAPI = "http://localhost:3000/api/products/";
 
 const nameSelector = document.getElementById("title");
