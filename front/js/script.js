@@ -1,11 +1,11 @@
 const urlAPI = "http://localhost:3000/api/products";
 const itemsSectionSelector = document.getElementById("items") 
 
+// Requête API pour récupérer toutes les données
 fetch(urlAPI) 
     .then(res => res.json())
-    .then(canapArray => {
-        displayProduct(canapArray);
-        return canapArray
+    .then(apiArray => {
+        displayProduct(apiArray);
     })
     .catch(err => console.log("Erreur API", err))
 
@@ -23,10 +23,3 @@ function displayProduct(arrayData) {
         itemsSectionSelector.innerHTML += itemsHTML;
     }
 }
-//<a href="./product.html?id=42">
-//    <article>
-//        <img src=".../product01.jpg" alt="Lorem ipsum dolor sit amet, Kanap name1">
-//        <h3 class="productName">Kanap name1</h3>
-//        <p class="productDescription">Dis enim malesuada risus sapien gravida nulla nisl arcu. Dis enim malesuada risus sapien gravida nulla nisl arcu.</p>
-//    </article>
-//</a>
