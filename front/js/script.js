@@ -1,11 +1,11 @@
 const urlAPI = "http://localhost:3000/api/products";
 const itemsSectionSelector = document.getElementById("items") 
 
+// Requête API pour récupérer toutes les données
 fetch(urlAPI) 
     .then(res => res.json())
-    .then(canapArray => {
-        displayProduct(canapArray);
-        return canapArray
+    .then(apiArray => {
+        displayProduct(apiArray);
     })
     .catch(err => console.log("Erreur API", err))
 

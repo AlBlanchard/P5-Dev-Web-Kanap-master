@@ -23,7 +23,6 @@ class product {
 
 // --------------------------------------- API --------------------------------------- //
 
-
 // Requête API pour un produit spécifique
 fetch(urlAPI + urlID) 
     .then(res => {
@@ -44,7 +43,6 @@ fetch(urlAPI + urlID)
 
 
 // --------------------------------------- FONCTIONS --------------------------------------- //
-
 
 // Insert les données du canapé en question dans le HTML
 function productHTML(productData) {
@@ -98,6 +96,7 @@ function productNotFound() {
     errorParagrElement.insertAdjacentElement("beforeend", errorLinkElement);
 };
 
+// Affiche un message d'erreur si un ou deux champs ne sont pas remplis
 function notSelectedError() {
     if (colorSelector.value == "" && quantitySelector.value == 0) {
         alert("Veuillez choisir une couleur et une quantité");
@@ -123,7 +122,7 @@ function addToCart(idToAdd, colorToAdd, quantityToAdd) {
     if (Array.isArray(cartData)) {
         let alreadyInCart = false;
 
-        // Cherche si le produit est déjà dans le panier et agit en conséquence
+        // Cherche si le produit est déjà dans le panier et agit en conséquence (augmente la quantité ou l'ajoute en entier)
         for(let productClass of cartData) {
             if(productClass.id == idToAdd && productClass.color == colorToAdd) {
                 productClass.quantity = productClass.quantity + quantityToAdd;
@@ -153,7 +152,6 @@ function addToCart(idToAdd, colorToAdd, quantityToAdd) {
 
 
 // --------------------------------------- EVENT LISTENER --------------------------------------- //
-
 
 // Empêche de saisir une quantité non valide
 quantitySelector.addEventListener("change", () => {

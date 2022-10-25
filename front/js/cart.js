@@ -1,5 +1,9 @@
 const urlAPI = "http://localhost:3000/api/products/";
 const cartSection = document.getElementById("cart__items")
+const orderButton = document.getElementById("order");
+const formElement = document.querySelector("form");
+const inputsElement = formElement.querySelectorAll("input");
+
 let cartData = JSON.parse(localStorage.getItem("cartData"));
 
 try {
@@ -7,6 +11,9 @@ try {
 } catch {
     localStorage.clear();
 };
+
+
+// --------------------------------------- FONCTIONS ASYNCHRONES --------------------------------------- //
 
 // Contacte l'API pour obtenir les données associées à l'ID  
 const apiResponse = (cartData, i) => fetch(urlAPI + cartData[i].id) 
@@ -20,7 +27,7 @@ const apiResponse = (cartData, i) => fetch(urlAPI + cartData[i].id)
         .catch(err => console.log("Erreur API", err))
 
 // Vérifie si les données du panier sont valides, sinon supprime les données invalides dans le localstorage
-const isDataValid = async (cartData) => {
+async function isDataValid(cartData) {
     let invalidIndex = [];
 
     // Vérifications, id quantité et couleur
@@ -47,7 +54,8 @@ const isDataValid = async (cartData) => {
     // Supprime les données incorrectes listées précédement
     if(invalidIndex !== []) {
         deleteData(cartData, invalidIndex);
-        if(cartData == [] || cartData == undefined || cartData == "") {
+
+        if(isEmpty(cartData)) {
             emptyMessageHTML();
         } else {
             return true;
@@ -59,7 +67,7 @@ const isDataValid = async (cartData) => {
 }
 
 // Liste les éléments du panier dans le DOM
-const cartListing = async (cartData) => {
+async function cartListing(cartData) {
     for(let i in cartData) {
         const apiProduct = await apiResponse(cartData, i);
 
@@ -92,7 +100,8 @@ const cartListing = async (cartData) => {
     }
 }
 
-const deleteEventListener = async (cartData) => {
+// Permet d'ajouter un event listener pour chaque boutton "supprimer"
+async function deleteEventListener(cartData) {
     const articleList = document.querySelectorAll(".cart__item");
 
     for(let article of articleList) {
@@ -109,14 +118,15 @@ const deleteEventListener = async (cartData) => {
             article.remove();
             localStorage.setItem("cartData", JSON.stringify(cartData));
             total(cartData);
-            if(cartData == "" || cartData == undefined) {
+            if(isEmpty(cartData)) {
                 emptyMessageHTML();
             }
         });
     }
 }
 
-const quantityEventListener = async (cartData) => {
+// Permet d'ajouter un event listener pour chaque input de quantité et empêche d'entrer une quantité non valide
+async function quantityEventListener(cartData) {
 
     const articleList = document.querySelectorAll(".cart__item");
 
@@ -146,7 +156,8 @@ const quantityEventListener = async (cartData) => {
     }
 }
 
-const total = async (cartData) => {
+// Inscrit le prix et la quantité total dans le DOM 
+async function total(cartData) {
     const totalSelector = document.querySelector(".cart__price");
 
     let totalQuantity = 0;
@@ -178,7 +189,8 @@ const total = async (cartData) => {
     totalSelector.innerHTML = totalHtml;
 }
 
-const cartToDom = async (cartData) => {
+// Lance les différentes fonctions pour la verification, l'affichage et les interactions sur le DOM
+async function cartToDom(cartData) {
     await isDataValid(cartData);
     await cartListing(cartData);
     await deleteEventListener(cartData);
@@ -186,14 +198,47 @@ const cartToDom = async (cartData) => {
     await total(cartData);
 }
 
-function deleteData(cartData, arrayIndex) {
-    for(index of arrayIndex) {
-        console.error("Ces données ont été supprimées car elles ne sont pas valides :", cartData[index]);
-        cartData.splice(index, 1);
-        localStorage.setItem("cartData", JSON.stringify(cartData));
+// Créer un objet de donnés en vue de l'envoyer à l'API pour une requête POST
+async function jsonPostData(cartData) {
+    let postRequest = {
+        contact: {
+            firstName: inputsElement[0].value,
+            lastName: inputsElement[1].value,
+            address: inputsElement[2].value,
+            city: inputsElement[3].value,
+            email: inputsElement[4].value,
+        },
+
+        products: []
+    };
+
+    for(product of cartData) {
+        postRequest.products.push(product.id);
     }
+
+    return postRequest;
 }
 
+// Envoie une requête POST à l'API
+async function apiPost(cartData) {
+    let postRequest = await jsonPostData(cartData);
+
+    let apiPostResponse = await fetch(urlAPI + "order", {
+        method : "POST",
+        headers: {
+            'Content-Type': 'application/json;charset=utf-8'
+          },
+          body: JSON.stringify(postRequest)
+    });
+    
+    // Redirige vers la page confirmation en y insérant le numéro de commande
+    let result = await apiPostResponse.json();
+    document.location.href=`../html/confirmation.html?orderId=${result.orderId}`;
+}
+
+// --------------------------------------- FONCTIONS SYNCHRONES --------------------------------------- //
+
+// Comme son nom l'indique, vérifie sur le panier est vide
 function isEmpty(cartData) {
     if (cartData == [] || cartData == undefined || cartData == "") {
         return true;
@@ -202,6 +247,7 @@ function isEmpty(cartData) {
     }
 }
 
+// Affiche un message pour le panier vide
 function emptyMessageHTML() {
     const emptyElement = document.createElement("h2");
     const emptyText = document.createTextNode("Votre panier est vide.");
@@ -209,44 +255,16 @@ function emptyMessageHTML() {
     cartSection.appendChild(emptyElement);
 };
 
-if(isEmpty(cartData)) {
-    emptyMessageHTML();
-    total(cartData);
-} else {
-    cartToDom(cartData);
+// Supprime les données listés dans le cartData
+function deleteData(cartData, arrayIndex) {
+    for(index of arrayIndex) {
+        console.error("Ces données ont été supprimées car elles ne sont pas valides :", cartData[index]);
+        cartData.splice(index, 1);
+        localStorage.setItem("cartData", JSON.stringify(cartData));
+    }
 }
 
-const orderButton = document.getElementById("order");
-
-orderButton.addEventListener("click", (order) => {
-    order.preventDefault()
-    cartData = JSON.parse(localStorage.getItem("cartData"));
-    if (isEmpty(cartData) == false) {
-        if (isformValid()) {
-            if (isDataValid(cartData)) {
-                apiPost(cartData);
-                localStorage.clear();
-            } else {
-                alert("Une erreur est survenue lors de votre commande, les données renseignées ne sont plus valides.");
-            }
-
-        } else {
-            for(input of inputsElement) {
-                input.addEventListener("change", () => {
-                    isformValid();
-                });
-            }
-        }
-
-    } else {
-        alert("Votre panier est vide !");
-    }
-});
-
-let formValid = true
-const formElement = document.querySelector("form");
-const inputsElement = formElement.querySelectorAll("input");
-
+// Vérifie si le formulaire est correctement rempli
 function isformValid() {
     const formErr = ["prénom", "nom", "adresse", "ville", "adresse e-mail"];
 
@@ -259,8 +277,7 @@ function isformValid() {
     const adressRegex = /^[\w'\-,.][^_!¡?÷?¿/\\+=@#$%ˆ&*(){}|~<>[\]]{1,}$/g;
 
     let formErrMessage = "";
-
-    formValid = true
+    let formValid = true
     
     for(let i = 0; i <= 4; i++) {
         if (inputsElement[i].value == "" || inputsElement[i].value == undefined) {
@@ -297,47 +314,42 @@ function isformValid() {
     return formValid;
 }
 
-let contact = {
-    firstName: "Alexis",
-    lastName: "Blanchard",
-    address: "14 rue de la carpe Haute",
-    city: "Strasbourg",
-    mail: "alexis@gmail.com"
+
+// --------------------------------------- BOUQUET FINAL --------------------------------------- //
+
+// Lance les différentes fonctions au chargement de la page
+if(isEmpty(cartData)) {
+    emptyMessageHTML();
+    total(cartData);
+} else {
+    cartToDom(cartData);
 }
 
+// Event Listener pour le boutton "commander", vérifie si le panier est vide, si le formulaire est valide, si les donnés sont valides, et envoie les donnés à l'API
+orderButton.addEventListener("click", (order) => {
+    order.preventDefault()
+    cartData = JSON.parse(localStorage.getItem("cartData"));
+    if (isEmpty(cartData) == false) {
+        if (isformValid()) {
+            if (isDataValid(cartData)) {
+                apiPost(cartData);
+                localStorage.clear();
+            } else {
+                alert("Une erreur est survenue lors de votre commande, les données renseignées ne sont plus valides.");
+            }
 
-let jsonPostData = async (cartData) => {
-let postRequest = {
-    contact: {
-        firstName: inputsElement[0].value,
-        lastName: inputsElement[1].value,
-        address: inputsElement[2].value,
-        city: inputsElement[3].value,
-        email: inputsElement[4].value,
-    },
+        } else {
+            for(input of inputsElement) {
+                input.addEventListener("change", () => {
+                    isformValid();
+                });
+            }
+        }
 
-    products: []
-};
-    for(product of cartData) {
-        postRequest.products.push(product.id);
+    } else {
+        alert("Votre panier est vide !");
     }
-
-    return postRequest;
-}
+});
 
 
 
-const apiPost = async (cartData) => {
-    let postRequest = await jsonPostData(cartData);
-
-    let apiPostResponse = await fetch(urlAPI + "order", {
-        method : "POST",
-        headers: {
-            'Content-Type': 'application/json;charset=utf-8'
-          },
-          body: JSON.stringify(postRequest)
-    });
-    
-    let result = await apiPostResponse.json();
-    document.location.href=`../html/confirmation.html?orderId=${result.orderId}`;
-}
