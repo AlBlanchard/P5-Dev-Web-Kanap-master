@@ -4,14 +4,13 @@ const orderButton = document.getElementById("order");
 const formElement = document.querySelector("form");
 const inputsElement = formElement.querySelectorAll("input");
 
-let cartData = JSON.parse(localStorage.getItem("cartData"));
-
 try {
     JSON.parse(localStorage.getItem("cartData"));
 } catch {
     localStorage.clear();
 };
 
+let cartData = JSON.parse(localStorage.getItem("cartData"));
 
 // --------------------------------------- FONCTIONS ASYNCHRONES --------------------------------------- //
 
@@ -48,6 +47,7 @@ async function isDataValid(cartData) {
             }
         }
 
+        // Supprime les données non valides du panier
         if(dataValid == false) {
             console.error("Ces données ont été supprimées car elles ne sont pas valides :", cartData[i]);
             allDataValid = false;
@@ -57,15 +57,6 @@ async function isDataValid(cartData) {
         }
     }
     return allDataValid;
-}
-
-// Supprime les données listés dans le cartData
-async function deleteData(cartData, arrayIndex) {
-    for(index of arrayIndex) {
-        console.error("Ces données ont été supprimées car elles ne sont pas valides :", cartData[index]);
-        cartData.splice(index, 1);
-        localStorage.setItem("cartData", JSON.stringify(cartData));
-    }
 }
 
 // Liste les éléments du panier dans le DOM
@@ -120,7 +111,9 @@ async function deleteEventListener(cartData) {
 
             for(let i in cartData) {
                 if(article.dataset.id == cartData[i].id) {
-                    cartData.splice(i, 1);
+                    if(article.dataset.color == cartData[i].color) {
+                        cartData.splice(i, 1);
+                    }
                 }
             }
 
@@ -312,7 +305,7 @@ function isformValid() {
 }
 
 
-// --------------------------------------- BOUQUET FINAL --------------------------------------- //
+// --------------------------------------- FINAL --------------------------------------- //
 
 // Lance les différentes fonctions au chargement de la page
 if(isEmpty(cartData)) {
@@ -322,13 +315,22 @@ if(isEmpty(cartData)) {
     cartToDom(cartData);
 }
 
-// Event Listener pour le boutton "commander", vérifie si le panier est vide, si le formulaire est valide, si les donnés sont valides, et envoie les donnés à l'API
+// Event Listener pour le boutton "commander", appelle la fonction orderAction
 orderButton.addEventListener("click", (order) => {
+    try {
+        JSON.parse(localStorage.getItem("cartData"));
+    } catch {
+        localStorage.clear();
+        alert("Une erreur est survenue lors de votre commande, les données renseignées ne sont plus valides.");
+        location.reload()
+    };
+
     order.preventDefault();
     cartData = JSON.parse(localStorage.getItem("cartData"));
     orderAction(cartData);
 });
 
+// Fonction déclenché lors du click sur order, vérifie si le panier est vide, si le formulaire est valide, si les donnés sont valides, et envoie les donnés à l'API
 async function orderAction(cartData) {
     if (isEmpty(cartData) == false) {
         if (isformValid()) {
@@ -337,6 +339,8 @@ async function orderAction(cartData) {
                 localStorage.clear();
             } else {
                 alert("Une erreur est survenue lors de votre commande, les données renseignées ne sont plus valides.");
+                cartListing(cartData);
+                total(cartData);
             }
 
         } else {
