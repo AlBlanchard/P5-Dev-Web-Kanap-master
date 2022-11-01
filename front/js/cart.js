@@ -339,8 +339,7 @@ async function orderAction(cartData) {
                 localStorage.clear();
             } else {
                 alert("Une erreur est survenue lors de votre commande, les données renseignées ne sont plus valides.");
-                cartListing(cartData);
-                total(cartData);
+                cartToDom(cartData);
             }
 
         } else {
